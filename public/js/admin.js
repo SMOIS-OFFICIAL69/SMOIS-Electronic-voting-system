@@ -286,6 +286,7 @@ const Admin = {
     loadDashboard: async function() {
         // Instant render from localStorage cache (0ms UI latency!)
         const cached = localStorage.getItem('mc_admin_cache');
+        let hasCache = false;
         if (cached) {
             try {
                 const data = JSON.parse(cached);
@@ -295,7 +296,12 @@ const Admin = {
                 this.renderScoreboard();
                 this.renderRoundControls();
                 this.renderContestantsTable();
+                hasCache = true;
             } catch (e) {}
+        }
+
+        if (!hasCache) {
+            App.showLoadingModal('กำลังเชื่อมต่อและโหลดข้อมูลสด...', 'ระบบกำลังดึงข้อมูลการแข่งขัน คะแนน และรายชื่อผู้เข้าแข่งขันทั้งหมดจาก Google Sheets');
         }
 
         try {
@@ -313,6 +319,8 @@ const Admin = {
             this.loadGSheetConfig();
         } catch (err) {
             App.showToast(err.message, 'error');
+        } finally {
+            App.hideLoadingModal();
         }
     },
 

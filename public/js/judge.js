@@ -110,11 +110,17 @@ const Judge = {
     loadDashboard: async function() {
         // Instant render from localStorage cache (0ms latency UI!)
         const cached = localStorage.getItem('mc_judge_cache');
+        let hasCache = false;
         if (cached) {
             try {
                 this.state.dashboard = JSON.parse(cached);
                 this.renderDashboard();
+                hasCache = true;
             } catch (e) {}
+        }
+
+        if (!hasCache) {
+            App.showLoadingModal('กำลังเชื่อมต่อและโหลดข้อมูลสด...', 'ระบบกำลังดึงข้อมูลการแข่งขัน คะแนน และรายชื่อผู้เข้าแข่งขันทั้งหมดจาก Google Sheets');
         }
 
         try {
@@ -124,6 +130,8 @@ const Judge = {
             this.renderDashboard();
         } catch (err) {
             App.showToast(err.message, 'error');
+        } finally {
+            App.hideLoadingModal();
         }
     },
 

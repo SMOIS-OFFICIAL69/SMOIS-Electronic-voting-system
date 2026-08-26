@@ -308,7 +308,24 @@ const App = {
         }
     },
 
+    showLoadingModal: function(title = 'กำลังเชื่อมต่อและโหลดข้อมูลสด...', subtitle = 'ระบบกำลังดึงข้อมูลการแข่งขัน คะแนน และรายชื่อผู้เข้าแข่งขันทั้งหมดจาก Google Sheets') {
+        const modal = document.getElementById('modal-sheet-loading');
+        if (modal) {
+            const sub = document.getElementById('loading-sub-text');
+            if (sub && subtitle) sub.textContent = subtitle;
+            modal.classList.add('active');
+        }
+    },
+
+    hideLoadingModal: function() {
+        const modal = document.getElementById('modal-sheet-loading');
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    },
+
     login: async function(username, password) {
+        this.showLoadingModal('กำลังตรวจสอบสิทธิ์...', 'กำลังเข้าสู่ระบบและดึงข้อมูลจาก Google Sheets');
         try {
             const res = await this.apiFetch('/api/login', 'POST', { username, password });
             this.state.token = res.token;
@@ -320,12 +337,14 @@ const App = {
             this.showToast(`ยินดีต้อนรับ ${res.user.name}`, 'success');
 
             if (res.user.role === 'admin') {
-                Admin.init();
+                await Admin.init();
             } else {
-                Judge.init();
+                await Judge.init();
             }
         } catch (err) {
             this.showToast(err.message, 'error');
+        } finally {
+            this.hideLoadingModal();
         }
     },
 
