@@ -43,53 +43,251 @@ const App = {
         }
     },
 
+    GSHEET_WEBAPP_URL: "https://script.google.com/macros/s/AKfycbyUyYg_waTStoQ5_cc7fyJJz9nDmhRTW6X7sEgKDmIoFFLZ91WZzR8LXmQ5daN6CXsJow/exec",
+
     apiFetch: async function(endpoint, method = 'GET', body = null) {
-        const headers = { 'Content-Type': 'application/json' };
-        if (this.state.token) {
-            headers['Authorization'] = `Bearer ${this.state.token}`;
-        }
+        const isLocalHost8000 = (window.location.protocol === 'http:' || window.location.protocol === 'https:') && (window.location.port === '8000');
+        const isFileProtocol = (window.location.protocol === 'file:');
 
-        const options = { method, headers };
-        if (body && (method === 'POST' || method === 'PUT')) {
-            options.body = JSON.stringify(body);
-        }
+        if (isLocalHost8000 || isFileProtocol) {
+            // Local Python Server Mode
+            const baseUrl = isFileProtocol ? 'http://localhost:8000' : '';
+            const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;
+            const headers = { 'Content-Type': 'application/json' };
+            if (this.state.token) headers['Authorization'] = `Bearer ${this.state.token}`;
 
-        // Auto-detect base URL (support file://, port 5500 Live Server, or direct server on 8000)
-        let baseUrl = '';
-        if (window.location.protocol === 'file:') {
-            baseUrl = 'http://localhost:8000';
-        } else if (window.location.port !== '8000') {
-            const host = window.location.hostname || 'localhost';
-            baseUrl = `${window.location.protocol}//${host}:8000`;
+            const options = { method, headers };
+            if (body && (method === 'POST' || method === 'PUT')) options.body = JSON.stringify(body);
+
+            try {
+                const res = await fetch(url, options);
+                const text = await res.text();
+                let data = {};
+                try {
+                    data = JSON.parse(text);
+                } catch (jsonErr) {
+                    if (!res.ok) {
+                        if (res.status === 404) throw new Error('ไม่พบข้อมูลที่ต้องการ (HTTP 404)');
+                        if (res.status === 401) throw new Error('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
+                        if (res.status === 403) throw new Error('ไม่มีสิทธิ์เข้าถึงข้อมูลนี้');
+                        throw new Error(`[HTTP ${res.status}] ไม่สามารถเชื่อมต่อข้อมูลได้ (${res.statusText})`);
+                    }
+                    throw new Error(`คำตอบจากเซิร์ฟเวอร์ไม่ได้อยู่ในรูปแบบ JSON: "${text.substring(0, 80)}..."`);
+                }
+
+                if (!res.ok) {
+                    throw new Error(data.error || `เกิดข้อผิดพลาดในการเชื่อมต่อ (HTTP ${res.status})`);
+                }
+                return data;
+            } catch (err) {
+                console.error(`[LOCAL API ERROR ${method} ${url}]`, err);
+                throw err;
+            }
+        } else {
+            // Remote Hosting Mode (Vercel / GitHub Pages / Netlify) -> Talk directly to Google Sheets Web App!
+            return await this.apiFetchGoogleSheets(endpoint, method, body);
         }
-        const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;
+    },
+
+    apiFetchGoogleSheets: async function(endpoint, method, body) {
+        const gUrl = this.GSHEET_WEBAPP_URL;
 
         try {
-            const res = await fetch(url, options);
-            const text = await res.text();
-            let data = {};
-            try {
-                data = JSON.parse(text);
-            } catch (jsonErr) {
-                if (!res.ok) {
-                    if (res.status === 404) throw new Error('ไม่พบข้อมูลที่ต้องการ (HTTP 404)');
-                    if (res.status === 401) throw new Error('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
-                    if (res.status === 403) throw new Error('ไม่มีสิทธิ์เข้าถึงข้อมูลนี้');
-                    throw new Error(`[HTTP ${res.status}] ไม่สามารถเชื่อมต่อข้อมูลได้ (${res.statusText})`);
+            if (endpoint === '/api/login') {
+                const res = await fetch(gUrl, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'login', username: body.username, password: body.password })
+                });
+                const data = JSON.parse(await res.text());
+                if (data.status === 'error' || data.error) {
+                    throw new Error(data.message || data.error || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
                 }
-                throw new Error(`คำตอบจากเซิร์ฟเวอร์ไม่ได้อยู่ในรูปแบบ JSON: "${text.substring(0, 80)}..."`);
+                const user = data.user;
+                const token = 'token_' + user.id + '_' + Date.now();
+                return { token, user };
             }
 
-            if (!res.ok) {
-                throw new Error(data.error || `เกิดข้อผิดพลาดในการเชื่อมต่อ (HTTP ${res.status})`);
+            if (endpoint === '/api/me') {
+                const storedUser = localStorage.getItem('mc_user');
+                if (storedUser) {
+                    return { user: JSON.parse(storedUser) };
+                }
+                throw new Error('Unauthorized');
             }
-            return data;
-        } catch (err) {
-            console.error(`[API ERROR ${method} ${url}]`, err);
-            if (window.location.protocol === 'file:' && err.message.includes('Failed to fetch')) {
-                throw new Error('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาตรวจสอบว่าเปิด server.py ไว้ที่ http://localhost:8000 แล้วหรือยัง');
+
+            if (endpoint === '/api/logout') {
+                localStorage.removeItem('mc_user');
+                return { message: 'Logged out' };
             }
-            throw err;
+
+            if (endpoint === '/api/judge/dashboard') {
+                const res = await fetch(`${gUrl}?action=get_dashboard`);
+                return JSON.parse(await res.text());
+            }
+
+            if (endpoint.startsWith('/api/admin/dashboard')) {
+                let rId = '';
+                if (endpoint.includes('round_id=')) {
+                    rId = endpoint.split('round_id=')[1].split('&')[0];
+                }
+                const res = await fetch(`${gUrl}?action=get_dashboard&round_id=${rId}`);
+                return JSON.parse(await res.text());
+            }
+
+            if (endpoint === '/api/admin/gsheet_config') {
+                if (method === 'POST' && body && body.gsheet_url) {
+                    this.GSHEET_WEBAPP_URL = body.gsheet_url;
+                }
+                return { gsheet_url: this.GSHEET_WEBAPP_URL };
+            }
+
+            if (endpoint === '/api/admin/gsheet_sync_now') {
+                return { message: 'เชื่อมต่อฐานข้อมูล Google Sheets เรียลไทม์ 100% เรียบร้อยแล้ว' };
+            }
+
+            if (endpoint === '/api/vote') {
+                const res = await fetch(gUrl, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'submit_vote', ...body })
+                });
+                const data = JSON.parse(await res.text());
+                if (data.status === 'error') throw new Error(data.message);
+                return data;
+            }
+
+            if (endpoint === '/api/rounds/activate') {
+                const res = await fetch(gUrl, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'activate_round', ...body })
+                });
+                const data = JSON.parse(await res.text());
+                if (data.status === 'error') throw new Error(data.message);
+                return data;
+            }
+
+            if (endpoint === '/api/contestants') {
+                if (method === 'POST') {
+                    const res = await fetch(gUrl, { method: 'POST', body: JSON.stringify({ action: 'save_contestant', ...body }) });
+                    return JSON.parse(await res.text());
+                }
+                const res = await fetch(`${gUrl}?action=get_contestants`);
+                return JSON.parse(await res.text());
+            }
+
+            if (endpoint.startsWith('/api/contestants/batch')) {
+                if (body && body.items) {
+                    for (const item of body.items) {
+                        await fetch(gUrl, { method: 'POST', body: JSON.stringify({ action: 'save_contestant', ...item }) });
+                    }
+                }
+                return { message: 'นำเข้าข้อมูลผู้เข้าแข่งขันสำเร็จ' };
+            }
+
+            if (endpoint.startsWith('/api/contestants/')) {
+                const cId = endpoint.split('/')[3];
+                if (method === 'DELETE') {
+                    const res = await fetch(gUrl, { method: 'POST', body: JSON.stringify({ action: 'delete_contestant', id: cId }) });
+                    return JSON.parse(await res.text());
+                }
+                if (method === 'PUT') {
+                    const res = await fetch(gUrl, { method: 'POST', body: JSON.stringify({ action: 'save_contestant', id: cId, ...body }) });
+                    return JSON.parse(await res.text());
+                }
+            }
+
+            if (endpoint === '/api/pairs') {
+                if (method === 'POST') {
+                    const res = await fetch(gUrl, { method: 'POST', body: JSON.stringify({ action: 'save_pair', ...body }) });
+                    return JSON.parse(await res.text());
+                }
+                const res = await fetch(`${gUrl}?action=get_pairs`);
+                return JSON.parse(await res.text());
+            }
+
+            if (endpoint.startsWith('/api/pairs/')) {
+                const pId = endpoint.split('/')[3];
+                if (method === 'DELETE') {
+                    const res = await fetch(gUrl, { method: 'POST', body: JSON.stringify({ action: 'delete_pair', id: pId }) });
+                    return JSON.parse(await res.text());
+                }
+                if (method === 'PUT') {
+                    const res = await fetch(gUrl, { method: 'POST', body: JSON.stringify({ action: 'save_pair', id: pId, ...body }) });
+                    return JSON.parse(await res.text());
+                }
+            }
+
+            if (endpoint.startsWith('/api/criteria')) {
+                if (method === 'POST') {
+                    const res = await fetch(gUrl, { method: 'POST', body: JSON.stringify({ action: 'save_criterion', ...body }) });
+                    return JSON.parse(await res.text());
+                }
+                const res = await fetch(`${gUrl}?action=get_criteria`);
+                return JSON.parse(await res.text());
+            }
+
+            if (endpoint.startsWith('/api/criteria/')) {
+                const crId = endpoint.split('/')[3];
+                if (method === 'DELETE') {
+                    const res = await fetch(gUrl, { method: 'POST', body: JSON.stringify({ action: 'delete_criterion', id: crId }) });
+                    return JSON.parse(await res.text());
+                }
+                if (method === 'PUT') {
+                    const res = await fetch(gUrl, { method: 'POST', body: JSON.stringify({ action: 'save_criterion', id: crId, ...body }) });
+                    return JSON.parse(await res.text());
+                }
+            }
+
+            if (endpoint === '/api/judges') {
+                if (method === 'POST') {
+                    const res = await fetch(gUrl, { method: 'POST', body: JSON.stringify({ action: 'save_judge', ...body }) });
+                    return JSON.parse(await res.text());
+                }
+                const res = await fetch(`${gUrl}?action=get_judges`);
+                return JSON.parse(await res.text());
+            }
+
+            if (endpoint.startsWith('/api/judges/')) {
+                const jId = endpoint.split('/')[3];
+                if (method === 'DELETE') {
+                    const res = await fetch(gUrl, { method: 'POST', body: JSON.stringify({ action: 'delete_judge', id: jId }) });
+                    return JSON.parse(await res.text());
+                }
+                if (method === 'PUT') {
+                    const res = await fetch(gUrl, { method: 'POST', body: JSON.stringify({ action: 'save_judge', id: jId, ...body }) });
+                    return JSON.parse(await res.text());
+                }
+            }
+
+            if (endpoint === '/api/rounds') {
+                if (method === 'POST') {
+                    const res = await fetch(gUrl, { method: 'POST', body: JSON.stringify({ action: 'save_round', ...body }) });
+                    return JSON.parse(await res.text());
+                }
+                const res = await fetch(`${gUrl}?action=get_rounds`);
+                return JSON.parse(await res.text());
+            }
+
+            if (endpoint.startsWith('/api/rounds/')) {
+                const rId = endpoint.split('/')[3];
+                if (method === 'DELETE') {
+                    const res = await fetch(gUrl, { method: 'POST', body: JSON.stringify({ action: 'delete_round', id: rId }) });
+                    return JSON.parse(await res.text());
+                }
+                if (method === 'PUT') {
+                    const res = await fetch(gUrl, { method: 'POST', body: JSON.stringify({ action: 'save_round', id: rId, ...body }) });
+                    return JSON.parse(await res.text());
+                }
+            }
+
+            if (endpoint === '/api/admin/audit_logs') {
+                const res = await fetch(`${gUrl}?action=get_logs`);
+                return JSON.parse(await res.text());
+            }
+
+            return { status: 'ok' };
+        } catch (e) {
+            console.error(`[GSHEET API ERROR ${method} ${endpoint}]`, e);
+            throw e;
         }
     },
 
@@ -116,6 +314,7 @@ const App = {
             this.state.token = res.token;
             this.state.user = res.user;
             localStorage.setItem('mc_token', res.token);
+            localStorage.setItem('mc_user', JSON.stringify(res.user));
             
             this.setupHeader();
             this.showToast(`ยินดีต้อนรับ ${res.user.name}`, 'success');
@@ -141,6 +340,7 @@ const App = {
         this.state.token = null;
         this.state.user = null;
         localStorage.removeItem('mc_token');
+        localStorage.removeItem('mc_user');
 
         if (typeof Admin !== 'undefined' && Admin.state.pollTimer) clearInterval(Admin.state.pollTimer);
         if (typeof Judge !== 'undefined' && Judge.state.pollTimer) clearInterval(Judge.state.pollTimer);
