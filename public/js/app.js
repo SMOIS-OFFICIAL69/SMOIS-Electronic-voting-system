@@ -45,13 +45,42 @@ const App = {
 
     GSHEET_WEBAPP_URL: "https://script.google.com/macros/s/AKfycbyUyYg_waTStoQ5_cc7fyJJz9nDmhRTW6X7sEgKDmIoFFLZ91WZzR8LXmQ5daN6CXsJow/exec",
 
-    apiFetch: async function(endpoint, method = 'GET', body = null) {
-        const isLocalHost8000 = (window.location.protocol === 'http:' || window.location.protocol === 'https:') && (window.location.port === '8000');
-        const isFileProtocol = (window.location.protocol === 'file:');
+    detectServerMode: async function() {
+        if (this.state.useLocalServer !== undefined) return this.state.useLocalServer;
+        
+        if (window.location.protocol === 'file:') {
+            this.state.useLocalServer = true;
+            return true;
+        }
 
-        if (isLocalHost8000 || isFileProtocol) {
+        if (window.location.port === '8000') {
+            this.state.useLocalServer = true;
+            return true;
+        }
+
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 500);
+            const res = await fetch('http://localhost:8000/api/rounds', { method: 'GET', signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (res.ok) {
+                this.state.useLocalServer = true;
+                return true;
+            }
+        } catch (e) {
+            // Local server not running
+        }
+
+        this.state.useLocalServer = false;
+        return false;
+    },
+
+    apiFetch: async function(endpoint, method = 'GET', body = null) {
+        const useLocal = await this.detectServerMode();
+
+        if (useLocal) {
             // Local Python Server Mode
-            const baseUrl = isFileProtocol ? 'http://localhost:8000' : '';
+            const baseUrl = (window.location.protocol === 'file:' || window.location.hostname !== 'localhost') ? 'http://localhost:8000' : '';
             const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;
             const headers = { 'Content-Type': 'application/json' };
             if (this.state.token) headers['Authorization'] = `Bearer ${this.state.token}`;
@@ -81,10 +110,11 @@ const App = {
                 return data;
             } catch (err) {
                 console.error(`[LOCAL API ERROR ${method} ${url}]`, err);
-                throw err;
+                // Fallback to Google Sheets if local server fetch fails
+                return await this.apiFetchGoogleSheets(endpoint, method, body);
             }
         } else {
-            // Remote Hosting Mode (Vercel / GitHub Pages / Netlify) -> Talk directly to Google Sheets Web App!
+            // Remote Hosting Mode (Vercel / Direct Google Sheets Web App)
             return await this.apiFetchGoogleSheets(endpoint, method, body);
         }
     },
