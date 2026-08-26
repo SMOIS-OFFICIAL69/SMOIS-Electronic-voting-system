@@ -39,7 +39,7 @@ const Admin = {
                 this.renderScoreboard();
                 this.renderRoundControls();
                 this.renderContestantsTable();
-                this.loadPairsTable();
+                this.loadPairsTable(true);
 
                 if (badge) badge.innerHTML = `<span class="live-dot">●</span> เรียลไทม์ (Live)`;
             } catch (e) {
@@ -713,7 +713,7 @@ const Admin = {
         }
     },
 
-    loadPairsTable: async function() {
+    loadPairsTable: async function(silent = false) {
         try {
             const res = await App.apiFetch('/api/pairs');
             const allPairs = res.pairs || [];
@@ -870,7 +870,7 @@ const Admin = {
         }
     },
 
-    loadCriteriaTable: async function() {
+    loadCriteriaTable: async function(silent = false) {
         try {
             const res = await App.apiFetch('/api/criteria');
             const allCriteria = res.criteria || [];
@@ -1012,7 +1012,7 @@ const Admin = {
         }
     },
 
-    loadAuditLogs: async function() {
+    loadAuditLogs: async function(silent = false) {
         try {
             const res = await App.apiFetch('/api/admin/audit_logs');
             this.state.logs = res.logs;
@@ -1026,7 +1026,7 @@ const Admin = {
                 </div>
             `).join('');
         } catch (err) {
-            App.showToast(err.message, 'error');
+            if (!silent) App.showToast(err.message, 'error');
         }
     },
 
@@ -1059,7 +1059,7 @@ const Admin = {
         App.openModal('modal-winner-stage');
     },
 
-    loadJudgesTable: async function() {
+    loadJudgesTable: async function(silent = false) {
         try {
             const res = await App.apiFetch('/api/judges');
             const judges = res.judges || [];
@@ -1116,7 +1116,7 @@ const Admin = {
                 };
             });
         } catch (err) {
-            App.showToast(err.message, 'error');
+            if (!silent) App.showToast(err.message, 'error');
         }
     },
 

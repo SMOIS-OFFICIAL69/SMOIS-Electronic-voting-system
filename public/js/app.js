@@ -61,18 +61,21 @@ const App = {
         try {
             const res = await fetch(url, options);
             const text = await res.text();
-            let data;
+            let data = {};
             try {
                 data = JSON.parse(text);
             } catch (jsonErr) {
                 if (!res.ok) {
-                    throw new Error(`[HTTP ${res.status}] ไม่สามารถดึงข้อมูลได้ (${res.statusText})`);
+                    if (res.status === 404) throw new Error('ไม่พบข้อมูลที่ต้องการ (HTTP 404)');
+                    if (res.status === 401) throw new Error('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
+                    if (res.status === 403) throw new Error('ไม่มีสิทธิ์เข้าถึงข้อมูลนี้');
+                    throw new Error(`[HTTP ${res.status}] ไม่สามารถเชื่อมต่อข้อมูลได้ (${res.statusText})`);
                 }
                 throw new Error(`คำตอบจากเซิร์ฟเวอร์ไม่ได้อยู่ในรูปแบบ JSON: "${text.substring(0, 80)}..."`);
             }
 
             if (!res.ok) {
-                throw new Error(data.error || `HTTP Error ${res.status}`);
+                throw new Error(data.error || `เกิดข้อผิดพลาดในการเชื่อมต่อ (HTTP ${res.status})`);
             }
             return data;
         } catch (err) {
@@ -108,8 +111,8 @@ const App = {
             this.state.user = res.user;
             localStorage.setItem('mc_token', res.token);
             
-            this.showToast(`ยินดีต้อนรับ ${res.user.name}`, 'success');
             this.setupHeader();
+            this.showToast(`ยินดีต้อนรับ ${res.user.name}`, 'success');
 
             if (res.user.role === 'admin') {
                 Admin.init();
@@ -121,19 +124,24 @@ const App = {
         }
     },
 
-    logout: async function(notify = true) {
+    logout: async function(showToast = true) {
         if (this.state.token) {
             try {
                 await this.apiFetch('/api/logout', 'POST');
-            } catch (e) {}
+            } catch (e) {
+                // Ignore logout error
+            }
         }
         this.state.token = null;
         this.state.user = null;
         localStorage.removeItem('mc_token');
-        
+
+        if (typeof Admin !== 'undefined' && Admin.state.pollTimer) clearInterval(Admin.state.pollTimer);
+        if (typeof Judge !== 'undefined' && Judge.state.pollTimer) clearInterval(Judge.state.pollTimer);
+
         document.getElementById('app-header').style.display = 'none';
         this.showView('view-login');
-        if (notify) {
+        if (showToast) {
             this.showToast('ออกจากระบบเรียบร้อยแล้ว', 'info');
         }
     },
@@ -159,6 +167,12 @@ const App = {
     showToast: function(message, type = 'info') {
         const container = document.getElementById('toast-container');
         if (!container) return;
+
+        // Deduplicate identical toasts
+        const existingToasts = Array.from(container.children);
+        if (existingToasts.some(t => t.innerHTML === message)) {
+            return;
+        }
 
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
