@@ -87,6 +87,10 @@ function doPost(e) {
       result = handleSaveJudge(postData);
     } else if (action === 'delete_judge') {
       result = handleDeleteJudge(postData);
+    } else if (action === 'save_round') {
+      result = handleSaveRound(postData);
+    } else if (action === 'delete_round') {
+      result = handleDeleteRound(postData);
     } else if (action === 'sync_all') {
       result = handleSyncAll(postData);
     } else {
@@ -518,6 +522,51 @@ function handleDeleteJudge(data) {
     }
   }
   return { status: 'error', message: 'Judge not found' };
+}
+
+// ----------------- ROUND CRUD HANDLERS -----------------
+function handleSaveRound(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  ensureAllSheetsExist();
+  const sheet = ss.getSheetByName(SHEET_NAMES.ROUNDS);
+  const rows = sheet.getDataRange().getValues();
+
+  let foundRow = -1;
+  if (data.id) {
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] == data.id) {
+        foundRow = i + 1;
+        break;
+      }
+    }
+  }
+
+  if (foundRow > 0) {
+    sheet.getRange(foundRow, 2, 1, 6).setValues([[data.code, data.name, data.subtitle, data.max_score || 100, rows[foundRow - 1][5] || 0, data.sort_order || 1]]);
+    logAuditInSheet(ss, 'Admin', 1, 'UPDATE_ROUND', `Updated round ${data.name}`);
+    return { status: 'success', message: 'Round updated successfully' };
+  } else {
+    const newId = rows.length;
+    sheet.appendRow([newId, data.code, data.name, data.subtitle, data.max_score || 100, 0, data.sort_order || 1]);
+    logAuditInSheet(ss, 'Admin', 1, 'ADD_ROUND', `Added round ${data.name}`);
+    return { status: 'success', message: 'Round added successfully', id: newId };
+  }
+}
+
+function handleDeleteRound(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAMES.ROUNDS);
+  if (!sheet) return { status: 'error', message: 'Sheet not found' };
+
+  const rows = sheet.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0] == data.id) {
+      sheet.deleteRow(i + 1);
+      logAuditInSheet(ss, 'Admin', 1, 'DELETE_ROUND', `Deleted round #${data.id}`);
+      return { status: 'success', message: 'Round deleted successfully' };
+    }
+  }
+  return { status: 'error', message: 'Round not found' };
 }
 
 // ----------------- AUDIT LOG HELPER -----------------
