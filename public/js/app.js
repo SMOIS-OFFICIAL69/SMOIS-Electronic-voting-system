@@ -54,8 +54,14 @@ const App = {
             options.body = JSON.stringify(body);
         }
 
-        // Auto-detect base URL if page is opened via file:// protocol
-        const baseUrl = (window.location.protocol === 'file:') ? 'http://localhost:8000' : '';
+        // Auto-detect base URL (support file://, port 5500 Live Server, or direct server on 8000)
+        let baseUrl = '';
+        if (window.location.protocol === 'file:') {
+            baseUrl = 'http://localhost:8000';
+        } else if (window.location.port !== '8000') {
+            const host = window.location.hostname || 'localhost';
+            baseUrl = `${window.location.protocol}//${host}:8000`;
+        }
         const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;
 
         try {
