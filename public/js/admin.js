@@ -28,20 +28,25 @@ const Admin = {
             if (document.querySelector('.modal-overlay.active')) return;
 
             const badge = document.getElementById('admin-sync-badge');
-            if (badge) badge.innerHTML = `<span class="live-dot" style="background:#f59e0b; animation-duration:0.4s;">⚡</span> กำลังอัปเดตจากชีต...`;
+            if (badge) badge.innerHTML = `<span class="live-dot" style="background:#f59e0b; animation-duration:0.4s;">⚡</span> กำลังดึงข้อมูลจากฐานชีต...`;
 
+            const t0 = performance.now();
             try {
                 const url = this.state.selectedRoundId ? `/api/admin/dashboard?round_id=${this.state.selectedRoundId}` : '/api/admin/dashboard';
                 const data = await App.apiFetch(url);
+                const t1 = performance.now();
+                const ms = Math.round(t1 - t0);
+
                 this.state.dashboard = data;
                 this.state.selectedRoundId = data.round.id;
+                localStorage.setItem('mc_admin_cache', JSON.stringify(data));
 
                 this.renderScoreboard();
                 this.renderRoundControls();
                 this.renderContestantsTable();
                 this.loadPairsTable(true);
 
-                if (badge) badge.innerHTML = `<span class="live-dot">●</span> เรียลไทม์ (Live)`;
+                if (badge) badge.innerHTML = `<span class="live-dot">●</span> เรียลไทม์ (${ms}ms)`;
             } catch (e) {
                 if (badge) badge.innerHTML = `<span class="live-dot" style="background:#ef4444;">●</span> ออฟไลน์`;
             }
@@ -279,11 +284,26 @@ const Admin = {
     },
 
     loadDashboard: async function() {
+        // Instant render from localStorage cache (0ms UI latency!)
+        const cached = localStorage.getItem('mc_admin_cache');
+        if (cached) {
+            try {
+                const data = JSON.parse(cached);
+                this.state.dashboard = data;
+                this.state.selectedRoundId = data.round.id;
+                this.renderRoundSelectOptions();
+                this.renderScoreboard();
+                this.renderRoundControls();
+                this.renderContestantsTable();
+            } catch (e) {}
+        }
+
         try {
             const url = this.state.selectedRoundId ? `/api/admin/dashboard?round_id=${this.state.selectedRoundId}` : '/api/admin/dashboard';
             const data = await App.apiFetch(url);
             this.state.dashboard = data;
             this.state.selectedRoundId = data.round.id;
+            localStorage.setItem('mc_admin_cache', JSON.stringify(data));
 
             this.renderRoundSelectOptions();
             this.renderScoreboard();

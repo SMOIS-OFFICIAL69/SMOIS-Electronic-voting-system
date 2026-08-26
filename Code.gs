@@ -97,6 +97,10 @@ function doPost(e) {
       result = { status: 'error', message: 'Unknown action: ' + action };
     }
 
+    if (action !== 'login' && action !== 'setup_database') {
+      invalidateCache();
+    }
+
     return ContentService.createTextOutput(JSON.stringify(result))
       .setMimeType(ContentService.MimeType.JSON);
   } catch (error) {
@@ -241,12 +245,35 @@ function replaceSheetContent(ss, sheetName, headers, rowObjects) {
   }
 }
 
+function invalidateCache() {
+  try {
+    const cache = CacheService.getScriptCache();
+    cache.remove('dashboard_all');
+    cache.remove('dashboard_1');
+    cache.remove('dashboard_2');
+    cache.remove('dashboard_3');
+    cache.remove('dashboard_4');
+    cache.remove('dashboard_5');
+  } catch (e) {}
+}
+
 // ----------------- DASHBOARD DATA HANDLER -----------------
 function handleGetDashboard(params) {
+  const roundId = (params && params.round_id) ? params.round_id.toString() : 'all';
+  const cacheKey = 'dashboard_' + roundId;
+  const cache = CacheService.getScriptCache();
+  
+  try {
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+  } catch (e) {}
+
   const rounds = getSheetData(SHEET_NAMES.ROUNDS);
   let activeRound = rounds.find(function(r) { return r.is_active == 1; }) || rounds[0] || { id: 1, name: 'ROUND 1', subtitle: 'INTRODUCTION', max_score: 100 };
   
-  if (params.round_id) {
+  if (params && params.round_id) {
     const r = rounds.find(function(item) { return item.id == params.round_id; });
     if (r) activeRound = r;
   }
@@ -288,7 +315,7 @@ function handleGetDashboard(params) {
   leaderboard.sort(function(a, b) { return b.avg_score - a.avg_score; });
   leaderboard.forEach(function(item, idx) { item.rank = idx + 1; });
 
-  return {
+  const result = {
     round: activeRound,
     active_round: activeRound,
     all_rounds: rounds,
@@ -299,6 +326,12 @@ function handleGetDashboard(params) {
     contestants: contestants,
     leaderboard: leaderboard
   };
+
+  try {
+    cache.put(cacheKey, JSON.stringify(result), 20);
+  } catch (e) {}
+
+  return result;
 }
 
 // ----------------- SUBMIT VOTE HANDLER -----------------

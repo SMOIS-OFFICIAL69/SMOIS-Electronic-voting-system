@@ -28,10 +28,14 @@ const Judge = {
             if (document.querySelector('.modal-overlay.active:not(#modal-round-activated-alert)')) return;
 
             const badge = document.getElementById('judge-sync-badge');
-            if (badge) badge.innerHTML = `<span class="live-dot" style="background:#f59e0b; animation-duration:0.4s;">⚡</span> กำลังอัปเดตจากชีต...`;
+            if (badge) badge.innerHTML = `<span class="live-dot" style="background:#f59e0b; animation-duration:0.4s;">⚡</span> กำลังดึงข้อมูลจากฐานชีต...`;
 
+            const t0 = performance.now();
             try {
                 const data = await App.apiFetch('/api/judge/dashboard');
+                const t1 = performance.now();
+                const ms = Math.round(t1 - t0);
+
                 const activeRound = data.active_round;
 
                 if (activeRound && this.state.lastActiveRoundId && this.state.lastActiveRoundId !== activeRound.id) {
@@ -43,8 +47,9 @@ const Judge = {
                 }
 
                 this.state.dashboard = data;
+                localStorage.setItem('mc_judge_cache', JSON.stringify(data));
                 this.renderDashboard();
-                if (badge) badge.innerHTML = `<span class="live-dot">●</span> เรียลไทม์ (Live)`;
+                if (badge) badge.innerHTML = `<span class="live-dot">●</span> เรียลไทม์ (${ms}ms)`;
             } catch (e) {
                 if (badge) badge.innerHTML = `<span class="live-dot" style="background:#ef4444;">●</span> ออฟไลน์`;
             }
@@ -103,9 +108,19 @@ const Judge = {
     },
 
     loadDashboard: async function() {
+        // Instant render from localStorage cache (0ms latency UI!)
+        const cached = localStorage.getItem('mc_judge_cache');
+        if (cached) {
+            try {
+                this.state.dashboard = JSON.parse(cached);
+                this.renderDashboard();
+            } catch (e) {}
+        }
+
         try {
             const data = await App.apiFetch('/api/judge/dashboard');
             this.state.dashboard = data;
+            localStorage.setItem('mc_judge_cache', JSON.stringify(data));
             this.renderDashboard();
         } catch (err) {
             App.showToast(err.message, 'error');
