@@ -864,6 +864,13 @@ class RequestHandler(BaseHTTPRequestHandler):
             conn.close()
             self.send_json({"logs": logs})
 
+        elif path == "/api/admin/gsheet_config":
+            if not user or user['role'] != 'admin':
+                self.send_error_json("Admin access required", 403)
+                return
+            url = get_gsheet_url()
+            self.send_json({"gsheet_url": url})
+
         elif path == "/api/judges":
             conn = get_db()
             cursor = conn.cursor()
@@ -1349,6 +1356,28 @@ class RequestHandler(BaseHTTPRequestHandler):
             except sqlite3.IntegrityError:
                 conn.close()
                 self.send_error_json("Judge has already cast tie-breaker vote for this contestant", 409)
+
+        elif path == "/api/admin/gsheet_config":
+            if not user or user['role'] != 'admin':
+                self.send_error_json("Admin access required", 403)
+                return
+            url = data.get('gsheet_url', '').strip()
+            if set_gsheet_url(url):
+                log_audit(user['name'], user['id'], 'CONFIG_GSHEET', "Updated Google Sheets Web App URL")
+                self.send_json({"message": "บันทึก Google Sheets URL สำเร็จเรียบร้อยแล้ว", "gsheet_url": url})
+            else:
+                self.send_error_json("Failed to save Google Sheets URL", 500)
+
+        elif path == "/api/admin/gsheet_sync_now":
+            if not user or user['role'] != 'admin':
+                self.send_error_json("Admin access required", 403)
+                return
+            success, msg = sync_full_database_to_gsheet()
+            if success:
+                log_audit(user['name'], user['id'], 'MANUAL_GSHEET_SYNC', "Triggered manual full database sync to Google Sheets")
+                self.send_json({"message": "ซิงค์ข้อมูลทั้งหมดไปยัง Google Sheets สำเร็จเรียบร้อยแล้ว!"})
+            else:
+                self.send_error_json(f"Sync failed: {msg}", 400)
 
         elif path == "/api/criteria":
             if not user or user['role'] != 'admin':

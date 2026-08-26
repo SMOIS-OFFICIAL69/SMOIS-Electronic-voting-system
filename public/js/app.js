@@ -60,7 +60,17 @@ const App = {
 
         try {
             const res = await fetch(url, options);
-            const data = await res.json();
+            const text = await res.text();
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (jsonErr) {
+                if (!res.ok) {
+                    throw new Error(`[HTTP ${res.status}] ไม่สามารถดึงข้อมูลได้ (${res.statusText})`);
+                }
+                throw new Error(`คำตอบจากเซิร์ฟเวอร์ไม่ได้อยู่ในรูปแบบ JSON: "${text.substring(0, 80)}..."`);
+            }
+
             if (!res.ok) {
                 throw new Error(data.error || `HTTP Error ${res.status}`);
             }
