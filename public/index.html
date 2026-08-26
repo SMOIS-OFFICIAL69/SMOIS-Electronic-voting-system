@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MC OF ISKKU 2026 — ระบบลงคะแนนการแข่งขันคณะกรรมการ</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- Top Header -->
+    <header class="header" id="app-header" style="display: none;">
+        <div class="header-container">
+            <a href="#" class="brand">
+                <span class="brand-badge">ISKKU 2026</span>
+                <div>
+                    <div class="brand-title">MC OF ISKKU 2026</div>
+                    <div class="brand-sub">ระบบลงคะแนนคณะกรรมการ</div>
+                </div>
+            </a>
+            <div class="user-nav">
+                <div class="user-badge">
+                    <div class="user-icon" id="nav-user-initial">G</div>
+                    <div class="user-info">
+                        <div class="user-name" id="nav-user-name">กรรมการคนที่ 1</div>
+                        <div class="user-role" id="nav-user-role">กรรมการ</div>
+                    </div>
+                </div>
+                <button class="btn btn-secondary btn-sm" id="btn-logout">
+                    🚪 ออกจากระบบ
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-container">
+
+        <!-- LOGIN VIEW -->
+        <section id="view-login" class="login-wrapper">
+            <div class="login-box">
+                <div class="login-logo">🎙️</div>
+                <h2 style="color: #fff; font-size: 1.6rem; margin-bottom: 4px;">MC OF ISKKU 2026</h2>
+                <p style="color: var(--text-gold); font-weight: 600; font-size: 0.95rem; margin-bottom: 24px;">
+                    ระบบลงคะแนนคณะกรรมการ
+                </p>
+                <form id="form-login">
+                    <div class="form-group" style="text-align: left;">
+                        <label class="form-label" for="login-username">ชื่อผู้ใช้งาน (Username)</label>
+                        <input type="text" id="login-username" class="form-control" placeholder="เช่น judge1 หรือ admin" required autocomplete="username">
+                    </div>
+                    <div class="form-group" style="text-align: left;">
+                        <label class="form-label" for="login-password">รหัสผ่าน (Password)</label>
+                        <input type="password" id="login-password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 10px;">
+                        🔑 เข้าสู่ระบบ
+                    </button>
+                </form>
+                <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-color); font-size: 0.8rem; color: var(--text-muted);">
+                    คณะกรรมการผู้ทรงคุณวุฒิ 3 ท่าน &bull; ป้องกันการส่งคะแนนซ้ำ
+                </div>
+            </div>
+        </section>
+
+        <!-- JUDGE DASHBOARD VIEW -->
+        <section id="view-judge" style="display: none;">
+            <!-- Header Summary Card -->
+            <div class="card card-gold">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <div class="badge badge-gold" id="judge-round-code">ROUND 1</div>
+                        <h2 style="font-size: 1.6rem; color: #fff; margin-top: 6px;" id="judge-round-title">
+                            ROUND 1 — INTRODUCTION
+                        </h2>
+                        <p style="color: var(--text-muted); font-size: 0.9rem;" id="judge-name-display">
+                            กรรมการ: กรรมการคนที่ 1
+                        </p>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span class="live-badge" id="judge-sync-badge"><span class="live-dot">●</span> อัปเดตสดอัตโนมัติ</span>
+                        <button class="btn btn-secondary btn-sm" id="btn-refresh-judge">
+                            🔄 อัปเดตข้อมูล
+                        </button>
+                    </div>
+                </div>
+
+                <div class="judge-header-grid">
+                    <div class="stat-box">
+                        <div class="stat-val" id="stat-total-contestants">0</div>
+                        <div class="stat-lbl">ผู้เข้าแข่งขันทั้งหมด</div>
+                    </div>
+                    <div class="stat-box" style="border-color: rgba(52, 211, 153, 0.4);">
+                        <div class="stat-val" style="color: var(--text-emerald);" id="stat-voted">0</div>
+                        <div class="stat-lbl">ลงคะแนนแล้ว</div>
+                    </div>
+                    <div class="stat-box" style="border-color: rgba(245, 158, 11, 0.4);">
+                        <div class="stat-val" style="color: var(--text-gold);" id="stat-remaining">0</div>
+                        <div class="stat-lbl">คงเหลือ</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Round 2 & 3 Pair Info Banner -->
+            <div id="judge-pairs-container" style="display: none;"></div>
+
+            <!-- Contestants List Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 24px 0 12px;">
+                <h3 style="font-size: 1.3rem; color: #fff;">รายชื่อผู้เข้าแข่งขัน</h3>
+                <span class="badge badge-cyan" id="judge-filter-badge">แสดงทั้งหมด</span>
+            </div>
+
+            <!-- Contestants Grid -->
+            <div class="contestant-grid" id="judge-contestant-grid">
+                <!-- Dynamic cards -->
+            </div>
+        </section>
+
+        <!-- JUDGE VOTING SHEET (FULLPAGE / SLIDE) -->
+        <section id="view-vote-form" style="display: none;">
+            <button class="btn btn-secondary btn-sm" id="btn-back-to-judge" style="margin-bottom: 16px;">
+                &larr; ย้อนกลับไปรายชื่อผู้เข้าแข่งขัน
+            </button>
+
+            <div class="card card-gold">
+                <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                    <img id="vote-c-avatar" src="" alt="Avatar" class="contestant-avatar" style="margin-bottom: 0; width: 100px; height: 100px;">
+                    <div style="flex: 1;">
+                        <div class="badge badge-gold" id="vote-c-code">MC-01</div>
+                        <h2 style="font-size: 1.8rem; color: #fff;" id="vote-c-name">ชื่อผู้เข้าแข่งขัน</h2>
+                        <p style="color: var(--text-muted);" id="vote-c-faculty">คณะ / สาขาวิชา</p>
+                        <p style="color: var(--text-cyan); font-size: 0.9rem; margin-top: 4px;" id="vote-round-subtitle">รอบการแข่งขัน: ROUND 1</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pair Info Box if Round 2 or 3 -->
+            <div id="vote-pair-box" class="pair-box" style="display: none;"></div>
+
+            <!-- Criteria Forms -->
+            <form id="form-submit-score">
+                <div class="card">
+                    <h3 style="font-size: 1.2rem; color: var(--text-gold); margin-bottom: 16px;">
+                        📋 เกณฑ์การประเมินคะแนน
+                    </h3>
+                    <div id="criteria-inputs-container">
+                        <!-- Dynamic Criteria Items -->
+                    </div>
+
+                    <!-- Realtime Total Score Banner -->
+                    <div class="total-score-banner">
+                        <div style="font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">
+                            คะแนนรวมคำนวณอัตโนมัติ (Real-time)
+                        </div>
+                        <div class="total-score-val" id="vote-live-total">0.00</div>
+                        <div style="font-size: 0.95rem; color: var(--text-gold);" id="vote-max-total">/ 100 คะแนน</div>
+                    </div>
+
+                    <button type="button" class="btn btn-primary btn-lg" id="btn-review-score" style="width: 100%;">
+                        🔍 ตรวจสอบคะแนนก่อนส่ง
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- ADMIN DASHBOARD VIEW -->
+        <section id="view-admin" style="display: none;">
+            <div class="card card-gold">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                    <div>
+                        <span class="badge badge-gold">ADMIN DASHBOARD</span>
+                        <h2 style="font-size: 1.8rem; color: #fff; margin-top: 4px;">
+                            แผงควบคุมและสรุปผลการแข่งขัน MC OF ISKKU 2026
+                        </h2>
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-success btn-sm" id="btn-export-trigger">
+                            📊 Export ข้อมูล (Excel/CSV/PDF)
+                        </button>
+                        <button class="btn btn-primary btn-sm" id="btn-winner-stage-trigger">
+                            🏆 หน้าประกาศผู้ชนะ (Stage)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Admin Navigation Tabs -->
+                <div style="display: flex; gap: 10px; margin-top: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; overflow-x: auto;">
+                    <button class="btn btn-secondary btn-sm admin-tab active" data-tab="tab-scoreboard">
+                        🏆 ตารางคะแนน & อันดับ
+                    </button>
+                    <button class="btn btn-secondary btn-sm admin-tab" data-tab="tab-rounds">
+                        ⚙️ จัดการรอบการแข่งขัน
+                    </button>
+                    <button class="btn btn-secondary btn-sm admin-tab" data-tab="tab-criteria">
+                        🎯 จัดการเกณฑ์คะแนน (Criteria)
+                    </button>
+                    <button class="btn btn-secondary btn-sm admin-tab" data-tab="tab-contestants">
+                        👤 จัดการผู้เข้าแข่งขัน & คู่แข่งขัน
+                    </button>
+                    <button class="btn btn-secondary btn-sm admin-tab" data-tab="tab-judges">
+                        👨‍⚖️ จัดการคณะกรรมการ (Judges)
+                    </button>
+                    <button class="btn btn-secondary btn-sm admin-tab" data-tab="tab-audit">
+                        📜 Audit Logs ประวัติการทำงาน
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 1: SCOREBOARD & LEADERBOARD -->
+            <div id="tab-scoreboard" class="admin-tab-content">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+                        <div>
+                            <h3 style="font-size: 1.3rem; color: #fff;">สรุปคะแนนและลำดับผู้เข้าแข่งขัน</h3>
+                            <p style="font-size: 0.85rem; color: var(--text-muted);">คำนวณคะแนนเฉลี่ยจากกรรมการทั้ง 3 ท่าน (ทศนิยม 2 ตำแหน่ง)</p>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <span class="live-badge"><span class="live-dot">●</span> เรียลไทม์ (Live)</span>
+                            <label style="font-size: 0.9rem; color: var(--text-muted);">เลือกรอบ:</label>
+                            <select id="admin-select-round" class="form-control" style="width: auto; padding: 6px 12px;">
+                                <!-- Dynamic round options -->
+                            </select>
+                            <button class="btn btn-secondary btn-sm" id="btn-refresh-admin">🔄 อัปเดต</button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table" id="admin-scoreboard-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 70px; text-align: center;">อันดับ</th>
+                                    <th>ผู้เข้าแข่งขัน</th>
+                                    <th style="text-align: center;">กก.1</th>
+                                    <th style="text-align: center;">กก.2</th>
+                                    <th style="text-align: center;">กก.3</th>
+                                    <th style="text-align: center;">คะแนนรวม</th>
+                                    <th style="text-align: center; color: var(--text-gold);">คะแนนเฉลี่ย</th>
+                                    <th style="text-align: center;">สถานะ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-scoreboard-tbody">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: ROUND CONTROLS & GOOGLE SHEETS -->
+            <div id="tab-rounds" class="admin-tab-content" style="display: none;">
+                <div class="card" style="margin-bottom: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <h3 style="font-size: 1.3rem; color: #fff;">🏆 จัดการรอบการแข่งขัน (Rounds Management)</h3>
+                            <p style="font-size: 0.9rem; color: var(--text-muted);">
+                                ผู้ดูแลระบบสามารถเพิ่ม แก้ไข ลบ และเปิดรอบการแข่งขันสำหรับให้กรรมการลงคะแนนได้
+                            </p>
+                        </div>
+                        <button class="btn btn-primary btn-sm" id="btn-add-round">
+                            ➕ เพิ่มรอบการแข่งขันใหม่
+                        </button>
+                    </div>
+                    <div id="admin-rounds-list">
+                        <!-- Dynamic round control cards -->
+                    </div>
+                </div>
+
+                <!-- GOOGLE SHEETS INTEGRATION CARD -->
+                <div class="card" style="border-color: var(--border-emerald);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <h3 style="font-size: 1.3rem; color: var(--text-emerald);">📊 Google Sheets Real-Time Database Sync</h3>
+                            <p style="font-size: 0.85rem; color: var(--text-muted);">เชื่อมต่อระบบบันทึกข้อมูลและสรุปผลลง Google Sheets แบบอัตโนมัติ Real-Time</p>
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="btn btn-secondary btn-sm" id="btn-copy-gs-code" style="border-color: var(--border-gold); color: var(--text-gold);">
+                                📋 คัดลอกโค้ด Code.gs
+                            </button>
+                            <button class="btn btn-primary btn-sm" id="btn-gs-guide-modal">
+                                📖 คู่มือติดตั้ง Google Sheets
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); padding: 12px 16px; border-radius: var(--radius-md); font-size: 0.85rem; color: #34d399; margin-bottom: 16px;">
+                        💡 <strong>ฐานข้อมูล Google Sheets:</strong> นำลิงก์ Web App URL จาก Google Apps Script มาวางที่นี่ ระบบจะทำการบันทึกและซิงค์ข้อมูลผู้เข้าแข่งขัน, คะแนน, และการเปิดรอบตรงไปยัง Google Sheets ทุกเครื่องโดยอัตโนมัติ
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label" for="gsheet-url-input">Google Apps Script Web App URL</label>
+                            <input type="text" id="gsheet-url-input" class="form-control" placeholder="https://script.google.com/macros/s/AKfycb.../exec">
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="btn btn-primary" id="btn-save-gsheet-url">
+                                💾 บันทึก URL
+                            </button>
+                            <button class="btn btn-success" id="btn-sync-gsheet-now">
+                                ⚡ ซิงค์ข้อมูลทั้งหมดไป Google Sheets
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: CONTESTANTS & PAIRS MANAGEMENT -->
+            <div id="tab-contestants" class="admin-tab-content" style="display: none;">
+                <!-- Contestants Management Card -->
+                <div class="card" style="margin-bottom: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <h3 style="font-size: 1.3rem; color: #fff;">🎤 จัดการรายชื่อผู้เข้าแข่งขัน (Contestants)</h3>
+                            <p style="font-size: 0.85rem; color: var(--text-muted);">สามารถเพิ่ม แก้ไข ลบข้อมูล และอัปโหลดลิงก์รูปภาพจาก Google Drive ได้</p>
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="btn btn-primary btn-sm" id="btn-add-contestant">
+                                ➕ เพิ่ม 1 คน
+                            </button>
+                            <button class="btn btn-secondary btn-sm" id="btn-batch-add-contestant" style="border-color: var(--border-gold); color: var(--text-gold);">
+                                ⚡ เพิ่มหลายคน (Quick Batch)
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(251, 191, 36, 0.08); border: 1px solid var(--border-gold); padding: 10px 14px; border-radius: var(--radius-md); font-size: 0.85rem; color: var(--text-gold); margin-bottom: 16px;">
+                        💡 <strong>รองรับ Google Drive Link:</strong> วางลิงก์รูปแชร์จาก Google Drive ได้โดยตรง ระบบจะแปลงเป็นรูปภาพอัตโนมัติ
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 70px;">รหัส</th>
+                                    <th style="width: 60px;">รูปภาพ</th>
+                                    <th>ชื่อ - นามสกุล</th>
+                                    <th>ชื่อเล่น</th>
+                                    <th>คณะ / สาขาวิชา</th>
+                                    <th style="text-align: center; width: 140px;">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-contestants-tbody">
+                                <!-- Dynamic contestant list -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pair Matching Management Card -->
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <h3 style="font-size: 1.3rem; color: var(--text-gold);">⚔️ จัดการจับคู่แข่งขันประจำรอบ (Round 2, 3 & 4 Pairs)</h3>
+                            <p style="font-size: 0.85rem; color: var(--text-muted);">กำหนดคู่ประชัน Keyword Battle (Round 2), Debate Battle (Round 3) และ Final Challenge (Round 4)</p>
+                        </div>
+                        <button class="btn btn-primary btn-sm" id="btn-add-pair">
+                            ➕ เพิ่มคู่แข่งขันใหม่
+                        </button>
+                    </div>
+
+                    <!-- Round Filter Sub-tabs -->
+                    <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;" id="pair-filter-tabs">
+                        <button class="btn btn-secondary btn-sm pair-filter-btn active" data-round="all">📌 ทั้งหมด</button>
+                        <button class="btn btn-secondary btn-sm pair-filter-btn" data-round="2">⚔️ Round 2: KEYWORD BATTLE</button>
+                        <button class="btn btn-secondary btn-sm pair-filter-btn" data-round="3">🗣️ Round 3: DEBATE BATTLE</button>
+                        <button class="btn btn-secondary btn-sm pair-filter-btn" data-round="4">🏆 Round 4: FINAL MC CHALLENGE</button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>รอบการแข่งขัน</th>
+                                    <th style="text-align: center;">คู่ที่</th>
+                                    <th>ผู้เข้าแข่งขันคนที่ 1</th>
+                                    <th style="text-align: center;">VS</th>
+                                    <th>ผู้เข้าแข่งขันคนที่ 2</th>
+                                    <th>Keywords / หัวข้อโจทย์แข่งขัน</th>
+                                    <th style="text-align: center; width: 140px;">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-pairs-tbody">
+                                <!-- Dynamic pairs list -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: JUDGES & ADMINS MANAGEMENT -->
+            <div id="tab-judges" class="admin-tab-content" style="display: none;">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <h3 style="font-size: 1.3rem; color: #fff;">👥 จัดการข้อมูลผู้ใช้งานและแอดมิน (Users & Admins)</h3>
+                            <p style="font-size: 0.85rem; color: var(--text-muted);">เพิ่ม แก้ไข ลบ และกำหนดสิทธิ์บทบาท (Admin / Judge) สำหรับเข้าใช้งานระบบ</p>
+                        </div>
+                        <button class="btn btn-primary btn-sm" id="btn-add-judge">
+                            ➕ เพิ่มผู้ใช้งาน / แอดมินใหม่
+                        </button>
+                    </div>
+
+                    <div style="background: rgba(251, 191, 36, 0.1); border: 1px solid var(--border-gold); padding: 12px 16px; border-radius: var(--radius-md); font-size: 0.85rem; color: var(--text-gold); margin-bottom: 16px;">
+                        💡 <strong>จัดการบทบาท:</strong> สามารถสร้างบัญชีผู้ดูแลระบบ (Admin) หรือ กรรมการ (Judge) พร้อมกำหนดสิทธิ์เข้าใช้งานได้ที่นี่
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 60px;">รูปภาพ</th>
+                                    <th>ชื่อ - นามสกุล</th>
+                                    <th>ชื่อผู้ใช้งาน (Username)</th>
+                                    <th>บทบาท (Role)</th>
+                                    <th style="text-align: center; width: 140px;">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-judges-tbody">
+                                <!-- Dynamic users list -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 6: CRITERIA MANAGEMENT -->
+            <div id="tab-criteria" class="admin-tab-content" style="display: none;">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <h3 style="font-size: 1.3rem; color: var(--text-gold);">🎯 จัดการเกณฑ์การให้คะแนน (Scoring Criteria)</h3>
+                            <p style="font-size: 0.85rem; color: var(--text-muted);">สามารถ เพิ่ม แก้ไข และลบเกณฑ์การลงคะแนนของแต่ละรอบการแข่งขันได้โดยตรง</p>
+                        </div>
+                        <button class="btn btn-primary btn-sm" id="btn-add-criterion">
+                            ➕ เพิ่มเกณฑ์คะแนนใหม่
+                        </button>
+                    </div>
+
+                    <!-- Round Filter Tabs for Criteria -->
+                    <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;" id="criteria-filter-tabs">
+                        <button class="btn btn-secondary btn-sm criteria-filter-btn active" data-round="all">📌 ทั้งหมด</button>
+                        <button class="btn btn-secondary btn-sm criteria-filter-btn" data-round="1">Round 1: INTRODUCTION</button>
+                        <button class="btn btn-secondary btn-sm criteria-filter-btn" data-round="2">Round 2: KEYWORD BATTLE</button>
+                        <button class="btn btn-secondary btn-sm criteria-filter-btn" data-round="3">Round 3: DEBATE BATTLE</button>
+                        <button class="btn btn-secondary btn-sm criteria-filter-btn" data-round="4">Round 4: FINAL MC CHALLENGE</button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>รอบการแข่งขัน</th>
+                                    <th>หมวดหมู่ / Part</th>
+                                    <th>ชื่อเกณฑ์การลงคะแนน</th>
+                                    <th style="text-align: center; width: 110px;">คะแนนเต็ม</th>
+                                    <th style="text-align: center; width: 80px;">ลำดับ</th>
+                                    <th style="text-align: center; width: 140px;">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-criteria-tbody">
+                                <!-- Dynamic criteria list -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: AUDIT LOGS -->
+            <div id="tab-audit" class="admin-tab-content" style="display: none;">
+                <div class="card">
+                    <h3 style="font-size: 1.3rem; color: #fff; margin-bottom: 16px;">📜 Audit Logs ประวัติการดำเนินการในระบบ</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px;">
+                        บันทึกประวัติ Login, การเปลี่ยนรอบ, การเริ่มลงคะแนน, และการส่งคะแนนพร้อม Timestamp จาก Server
+                    </p>
+                    <div style="background: rgba(15, 23, 42, 0.9); border-radius: var(--radius-md); padding: 12px; max-height: 500px; overflow-y: auto;" id="admin-audit-logs-container">
+                        <!-- Dynamic log items -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ADD / EDIT JUDGE MODAL -->
+    <div class="modal-overlay" id="modal-judge">
+        <div class="modal-box">
+            <h3 style="font-size: 1.4rem; color: var(--text-gold); margin-bottom: 16px;" id="modal-judge-title">
+                👨‍⚖️ เพิ่มข้อมูลกรรมการ
+            </h3>
+            <form id="form-judge">
+                <input type="hidden" id="judge-edit-id" value="">
+                
+                <div class="form-group">
+                    <label class="form-label" for="judge-name-input">ชื่อ-นามสกุล กรรมการ *</label>
+                    <input type="text" id="judge-name-input" class="form-control" placeholder="เช่น กรรมการคนที่ 4 (ผศ.ดร.สมชาย ใจดี)" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="judge-username-input">ชื่อผู้ใช้งาน (Username) *</label>
+                    <input type="text" id="judge-username-input" class="form-control" placeholder="เช่น judge4" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="judge-password-input">รหัสผ่าน (Password) <span id="judge-pwd-note" style="font-size: 0.75rem; color: var(--text-muted);">(เว้นว่างไว้หากไม่ต้องการเปลี่ยน)</span></label>
+                    <input type="password" id="judge-password-input" class="form-control" placeholder="••••••••">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="judge-role-input">บทบาทในระบบ (Role) *</label>
+                    <select id="judge-role-input" class="form-control" required>
+                        <option value="judge">👨‍⚖️ กรรมการ (Judge)</option>
+                        <option value="admin">👑 ผู้ดูแลระบบ (Admin)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="judge-avatar-input">ลิงก์รูปภาพ (URL หรือ Google Drive Link)</label>
+                    <input type="text" id="judge-avatar-input" class="form-control" placeholder="https://drive.google.com/file/d/...">
+                    <small style="color: var(--text-muted); font-size: 0.75rem;">วางลิงก์ Google Drive แบบเปิดสาธารณะ ระบบจะดึงรูปให้อัตโนมัติ</small>
+                </div>
+
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-judge-modal">
+                        ยกเลิก
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="btn-save-judge">
+                        💾 บันทึกข้อมูลผู้ใช้งาน
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ADD / EDIT CONTESTANT MODAL -->
+    <div class="modal-overlay" id="modal-contestant">
+        <div class="modal-box">
+            <h3 style="font-size: 1.4rem; color: var(--text-gold); margin-bottom: 16px;" id="modal-c-title">
+                🎤 เพิ่มผู้เข้าแข่งขัน
+            </h3>
+            <form id="form-contestant">
+                <input type="hidden" id="c-edit-id" value="">
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label class="form-label" for="c-code-input">รหัสประจำตัว (Code) *</label>
+                        <input type="text" id="c-code-input" class="form-control" placeholder="เช่น MC-01" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="c-nickname-input">ชื่อเล่น</label>
+                        <input type="text" id="c-nickname-input" class="form-control" placeholder="เช่น น็อต">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="c-name-input">ชื่อ-นามสกุล *</label>
+                    <input type="text" id="c-name-input" class="form-control" placeholder="เช่น กิตติศักดิ์ วงศ์สวัสดิ์" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="c-faculty-input">คณะ / สาขาวิชา *</label>
+                    <input type="text" id="c-faculty-input" class="form-control" placeholder="เช่น สารสนเทศศาสตร์ (ISKKU)" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="c-avatar-input">ลิงก์รูปภาพ (URL หรือ Google Drive Link)</label>
+                    <input type="text" id="c-avatar-input" class="form-control" placeholder="https://drive.google.com/file/d/...">
+                    <small style="color: var(--text-muted); font-size: 0.75rem;">วางลิงก์ Google Drive ได้ ระบบจะแปลงเป็นรูปให้อัตโนมัติ</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="c-bio-input">ข้อมูลย่อ / สโลแกน</label>
+                    <textarea id="c-bio-input" class="form-control" rows="2" placeholder="เช่น พิธีกรสายบันเทิง มั่นใจ โดดเด่น"></textarea>
+                </div>
+
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-c-modal">
+                        ยกเลิก
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="btn-save-c">
+                        💾 บันทึกผู้เข้าแข่งขัน
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- QUICK BATCH CONTESTANTS MODAL -->
+    <div class="modal-overlay" id="modal-batch-contestant">
+        <div class="modal-box" style="max-width: 700px;">
+            <h3 style="font-size: 1.4rem; color: var(--text-gold); margin-bottom: 12px;">
+                ⚡ เพิ่มผู้เข้าแข่งขันแบบรวดเร็ว (Quick Batch Import)
+            </h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px;">
+                วางข้อความทีละบรรทัด รูปแบบ: <code>รหัส | ชื่อเล่น | ชื่อ-นามสกุล | คณะ/สาขา | ลิงก์รูปภาพ</code>
+            </p>
+
+            <form id="form-batch-contestant">
+                <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <label class="form-label">รายการผู้เข้าแข่งขัน (1 คนต่อ 1 บรรทัด)</label>
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-demo-batch" style="padding: 2px 8px; font-size: 0.75rem;">
+                            🪄 ใส่ตัวอย่างทดสอบ
+                        </button>
+                    </div>
+                    <textarea id="batch-c-text" class="form-control" rows="8" placeholder="MC-13 | ก้อง | กิตติพงษ์ สุขเสริฐ | สารสนเทศศาสตร์ | https://drive.google.com/file/d/...&#10;MC-14 | เมย์ | เมธาวี จิตมั่น | เทคโนโลยีสารสนเทศ | https://drive.google.com/file/d/..." style="font-family: monospace; font-size: 0.85rem;" required></textarea>
+                </div>
+
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-batch-c-modal">
+                        ยกเลิก
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        🚀 นำเข้าข้อมูลทั้งหมด
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ADD / EDIT PAIR MATCH MODAL -->
+    <div class="modal-overlay" id="modal-pair">
+        <div class="modal-box">
+            <h3 style="font-size: 1.4rem; color: var(--text-gold); margin-bottom: 16px;" id="modal-pair-title">
+                ⚔️ จัดการจับคู่แข่งขันประจำรอบ
+            </h3>
+            <form id="form-pair">
+                <input type="hidden" id="pair-edit-id" value="">
+                
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label class="form-label" for="pair-round-select">รอบการแข่งขัน *</label>
+                        <select id="pair-round-select" class="form-control" required>
+                            <option value="2">ROUND 2 — KEYWORD BATTLE</option>
+                            <option value="3">ROUND 3 — DEBATE BATTLE</option>
+                            <option value="4">ROUND 4 — THE FINAL MC CHALLENGE</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="pair-num-input">คู่ที่ # *</label>
+                        <input type="number" id="pair-num-input" class="form-control" min="1" max="50" value="1" required>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label class="form-label" for="pair-c1-select">ผู้เข้าแข่งขันคนที่ 1 *</label>
+                        <select id="pair-c1-select" class="form-control" required>
+                            <!-- Dynamic contestants options -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="pair-c2-select">ผู้เข้าแข่งขันคนที่ 2 *</label>
+                        <select id="pair-c2-select" class="form-control" required>
+                            <!-- Dynamic contestants options -->
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="pair-keywords-input">Keywords 2 คำ (สำหรับ Round 2)</label>
+                    <input type="text" id="pair-keywords-input" class="form-control" placeholder="เช่น ปัญญาประดิษฐ์ (AI), นวัตกรรมอนาคต">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="pair-topic-input">หัวข้อ Debate / ชื่องาน (สำหรับ Round 3)</label>
+                    <input type="text" id="pair-topic-input" class="form-control" placeholder="เช่น AI จะมาทดแทนพิธีกรมนุษย์ในอนาคตหรือไม่?">
+                </div>
+
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-pair-modal">
+                        ยกเลิก
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="btn-save-pair">
+                        💾 บันทึกการจับคู่
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ADD / EDIT CRITERION MODAL -->
+    <div class="modal-overlay" id="modal-criterion">
+        <div class="modal-box">
+            <h3 style="font-size: 1.4rem; color: var(--text-gold); margin-bottom: 16px;" id="modal-crit-title">
+                🎯 เพิ่มเกณฑ์การให้คะแนน
+            </h3>
+            <form id="form-criterion">
+                <input type="hidden" id="crit-edit-id" value="">
+                
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label class="form-label" for="crit-round-select">รอบการแข่งขัน *</label>
+                        <select id="crit-round-select" class="form-control" required>
+                            <option value="1">ROUND 1 — INTRODUCTION</option>
+                            <option value="2">ROUND 2 — KEYWORD BATTLE</option>
+                            <option value="3">ROUND 3 — DEBATE BATTLE</option>
+                            <option value="4">ROUND 4 — THE FINAL MC CHALLENGE</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="crit-order-input">ลำดับแสดงผล *</label>
+                        <input type="number" id="crit-order-input" class="form-control" min="1" max="50" value="1" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="crit-part-input">หมวดหมู่ / Part (ถ้ามี)</label>
+                    <input type="text" id="crit-part-input" class="form-control" placeholder="เช่น PART 1: การเปิดตัวและความพร้อม">
+                    <small style="color: var(--text-muted); font-size: 0.75rem;">หากไม่มี สามารถเว้นว่างไว้ได้</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="crit-name-input">ชื่อเกณฑ์การให้คะแนน *</label>
+                    <input type="text" id="crit-name-input" class="form-control" placeholder="เช่น บุคลิกภาพ การแต่งกาย และความมั่นใจ" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="crit-max-score-input">คะแนนเต็ม (Max Score) *</label>
+                    <input type="number" id="crit-max-score-input" class="form-control" min="1" max="100" step="0.5" value="25" required>
+                    <small style="color: var(--text-gold); font-size: 0.75rem;">ระบบจะคำนวณคะแนนเต็มรวมของรอบนั้นให้อัตโนมัติ</small>
+                </div>
+
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-crit-modal">
+                        ยกเลิก
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="btn-save-crit">
+                        💾 บันทึกเกณฑ์คะแนน
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- GOOGLE SHEETS SETUP GUIDE MODAL -->
+    <div class="modal-overlay" id="modal-gs-guide">
+        <div class="modal-box" style="max-width: 750px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="font-size: 1.4rem; color: var(--text-emerald);">
+                    📖 ขั้นตอนการเชื่อมต่อ Google Sheets เป็นฐานข้อมูล
+                </h3>
+                <button class="btn btn-secondary btn-sm" id="btn-close-gs-guide">✕ ปิด</button>
+            </div>
+
+            <div style="display: grid; gap: 14px; font-size: 0.9rem; line-height: 1.6; color: var(--text-light);">
+                <div style="background: rgba(15, 23, 42, 0.8); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                    <strong style="color: var(--text-gold);">ขั้นตอนที่ 1: สร้าง Google Sheets ใหม่</strong>
+                    <br>1. เข้าไปที่ <a href="https://sheets.new" target="_blank" style="color: var(--text-cyan);">sheets.new</a> เพื่อสร้างไฟล์ Google Sheets ใหม่
+                    <br>2. ตั้งชื่อไฟล์ตามต้องการ เช่น <code>MC_OF_ISKKU_2026_DATABASE</code>
+                </div>
+
+                <div style="background: rgba(15, 23, 42, 0.8); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                    <strong style="color: var(--text-gold);">ขั้นตอนที่ 2: เปิด Apps Script และวางโค้ด</strong>
+                    <br>1. ไปที่เมนู <strong>ส่วนขยาย (Extensions) &gt; Apps Script</strong>
+                    <br>2. ลบโค้ดเดิมในไฟล์ <code>Code.gs</code> ออกทั้งหมด
+                    <br>3. กดปุ่ม <strong>"📋 คัดลอกโค้ด Code.gs"</strong> ด้านล่างเพื่อคัดลอกโค้ด แล้วนำไปวางในหน้าต่าง Apps Script
+                </div>
+
+                <div style="background: rgba(15, 23, 42, 0.8); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                    <strong style="color: var(--text-gold);">ขั้นตอนที่ 3: ทำให้ใช้งานเป็นเว็บแอป (Deploy as Web App)</strong>
+                    <br>1. กดปุ่ม <strong>ทำให้ใช้งานได้ (Deploy) &gt; การเปิดตัวใช้งานใหม่ (New Deployment)</strong>
+                    <br>2. เลือกประเภทเป็น <strong>เว็บแอป (Web App)</strong>
+                    <br>3. กำหนดค่า:
+                    <br>&nbsp;&nbsp;&bull; <strong>การเข้าถึงในฐานะ (Execute as):</strong> <code>ฉัน (Me)</code>
+                    <br>&nbsp;&nbsp;&bull; <strong>ผู้มีสิทธิ์เข้าถึง (Who has access):</strong> <code>ทุกคน (Anyone)</code>
+                    <br>4. กดปุ่ม <strong>ทำให้ใช้งานได้ (Deploy)</strong> แล้วกดให้สิทธิ์การเข้าถึง (Grant Permissions)
+                    <br>5. คัดลอก <strong>URL เว็บแอป (Web App URL)</strong> ที่ขึ้นต้นด้วย <code>https://script.google.com/macros/s/.../exec</code>
+                </div>
+
+                <div style="background: rgba(15, 23, 42, 0.8); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                    <strong style="color: var(--text-gold);">ขั้นตอนที่ 4: วาง URL ในระบบ</strong>
+                    <br>นำ Web App URL มาวางในช่อง Google Apps Script Web App URL บนหน้าเว็บ แล้วกดปุ่ม <strong>"💾 บันทึก URL"</strong> จากนั้นกด <strong>"⚡ ซิงค์ข้อมูลทั้งหมดไป Google Sheets"</strong> ระบบจะสร้างตารางและซิงค์ข้อมูลให้อัตโนมัติ!
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+                <button class="btn btn-secondary" id="btn-copy-gs-code-modal">
+                    📋 คัดลอกโค้ด Code.gs
+                </button>
+                <button class="btn btn-primary" id="btn-close-gs-guide-2">
+                    ✅ เข้าใจแล้ว
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCORE CONFIRMATION MODAL -->
+    <div class="modal-overlay" id="modal-review-score">
+        <div class="modal-box">
+            <h3 style="font-size: 1.4rem; color: var(--text-gold); margin-bottom: 12px;">
+                🔍 ตรวจสอบคะแนนก่อนส่ง
+            </h3>
+            
+            <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid var(--border-gold); padding: 14px; border-radius: var(--radius-md); margin-bottom: 20px; color: var(--text-gold); font-size: 0.9rem; line-height: 1.5;">
+                ⚠️ <strong>ข้อความสำคัญ:</strong><br>
+                กรุณาตรวจสอบคะแนนให้ถูกต้อง การกดส่งคะแนนแล้วจะไม่สามารถแก้ไขได้
+            </div>
+
+            <div style="margin-bottom: 16px;">
+                <div style="font-size: 0.85rem; color: var(--text-muted);">ผู้เข้าแข่งขัน:</div>
+                <div style="font-size: 1.2rem; font-weight: 700; color: #fff;" id="modal-c-name">นายกิตติศักดิ์ วงศ์สวัสดิ์ (MC-01)</div>
+                <div style="font-size: 0.85rem; color: var(--text-cyan);" id="modal-round-name">ROUND 1 — INTRODUCTION</div>
+            </div>
+
+            <div style="border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); padding: 14px 0; margin-bottom: 20px;">
+                <div style="font-weight: 600; color: var(--text-muted); margin-bottom: 10px;">รายละเอียดคะแนนแต่ละเกณฑ์:</div>
+                <div id="modal-score-breakdown">
+                    <!-- Dynamic breakdown items -->
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-bottom: 24px;">
+                <span style="font-size: 0.9rem; color: var(--text-muted);">คะแนนรวมทั้งหมด</span>
+                <div style="font-size: 3rem; font-weight: 800; color: var(--text-gold);" id="modal-total-score">89 / 100</div>
+            </div>
+
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button class="btn btn-secondary" id="btn-modal-edit">
+                    ✏️ กลับไปแก้ไข
+                </button>
+                <button class="btn btn-success" id="btn-modal-confirm-submit">
+                    ✅ ยืนยันส่งคะแนน
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- WINNER ANNOUNCEMENT STAGE OVERLAY -->
+    <div class="modal-overlay" id="modal-winner-stage">
+        <div class="modal-box" style="max-width: 800px; text-align: center;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: var(--text-gold);">🏆 พิธีประกาศผลผู้ชนะ MC OF ISKKU 2026</h3>
+                <button class="btn btn-secondary btn-sm" id="btn-close-winner">✕ ปิด</button>
+            </div>
+            
+            <div class="winner-stage">
+                <h1 style="font-size: 2.2rem; color: #fff; margin-bottom: 10px;">MC OF ISKKU 2026</h1>
+                <p style="color: var(--text-gold); font-weight: 600;">ผลการตัดสินอย่างเป็นทางการจากคณะกรรมการทั้ง 3 ท่าน</p>
+
+                <div id="winner-announcement-cards">
+                    <!-- Dynamic Top 3 Winner Cards -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD / EDIT ROUND MODAL -->
+    <div class="modal-overlay" id="modal-round">
+        <div class="modal-box">
+            <h3 style="font-size: 1.4rem; color: var(--text-gold); margin-bottom: 16px;" id="modal-round-title">
+                🏆 เพิ่มรอบการแข่งขันใหม่
+            </h3>
+            <form id="form-round">
+                <input type="hidden" id="round-edit-id" value="">
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label class="form-label" for="round-code-input">รหัสรอบ (Code) *</label>
+                        <input type="text" id="round-code-input" class="form-control" placeholder="เช่น ROUND_5" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="round-order-input">ลำดับการแข่งขัน *</label>
+                        <input type="number" id="round-order-input" class="form-control" min="1" max="20" value="1" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="round-name-input">ชื่อรอบการแข่งขัน *</label>
+                    <input type="text" id="round-name-input" class="form-control" placeholder="เช่น ROUND 5 — SPECIAL CHALLENGE" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="round-subtitle-input">คำอธิบายย่อ (Subtitle) *</label>
+                    <input type="text" id="round-subtitle-input" class="form-control" placeholder="เช่น รอบการประลองปฏิภาณไหวพริบขั้นพิเศษ" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="round-max-score-input">คะแนนเต็มรวม (Max Score) *</label>
+                    <input type="number" id="round-max-score-input" class="form-control" min="1" max="1000" step="0.5" value="100" required>
+                </div>
+
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-round-modal">
+                        ยกเลิก
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="btn-save-round">
+                        💾 บันทึกรอบการแข่งขัน
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JUDGE ACTIVE ROUND ACTIVATED ALERT MODAL -->
+    <div class="modal-overlay" id="modal-round-activated-alert">
+        <div class="modal-box" style="max-width: 500px; text-align: center; border: 2px solid var(--border-gold); background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.98));">
+            <div style="font-size: 3.5rem; margin-bottom: 8px; animation: pulse 1s infinite;">🔔</div>
+            <span class="badge badge-gold" style="font-size: 0.9rem; padding: 4px 12px; margin-bottom: 12px;" id="alert-round-code-badge">ACTIVE ROUND</span>
+            <h3 style="font-size: 1.7rem; color: #fff; margin-top: 6px; margin-bottom: 8px;" id="alert-round-name-display">
+                ประกาศเปิดการแข่งขันรอบใหม่!
+            </h3>
+            <p style="color: var(--text-gold); font-size: 1.05rem; font-weight: 600; margin-bottom: 16px;" id="alert-round-subtitle-display">
+                สลับไปยังรอบการแข่งขันใหม่แล้ว
+            </p>
+            <div style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); padding: 12px; border-radius: var(--radius-md); font-size: 0.88rem; color: var(--text-light); margin-bottom: 24px;">
+                💡 <strong>คำแนะนำ:</strong> ผู้ดูแลระบบได้สลับรอบการแข่งขันประจำช่วงเวลานี้แล้ว ท่านสามารถเริ่มประเมินและให้คะแนนผู้เข้าแข่งขันในรอบนี้ได้ทันที
+            </div>
+            <button class="btn btn-primary btn-lg" id="btn-acknowledge-round-alert" style="width: 100%; box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);">
+                🚀 เข้าใจแล้ว — เริ่มให้คะแนนรอบนี้
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- App Scripts -->
+    <script src="js/app.js"></script>
+    <script src="js/judge.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/export.js"></script>
+</body>
+</html>
